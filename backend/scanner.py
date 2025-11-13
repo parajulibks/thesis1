@@ -1,7 +1,5 @@
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
-from models import Asset, Alert, Setting
-from app import db
 import os
 from datetime import datetime
 
@@ -32,6 +30,7 @@ def send_webhook_notification(alert):
 
 def scan_nvd_vulnerabilities(asset):
     """Scan NVD for vulnerabilities matching asset"""
+    from app import Setting
     try:
         # Check if NVD is enabled
         nvd_enabled = Setting.query.filter_by(key='nvd_enabled').first()
@@ -69,6 +68,7 @@ def scan_nvd_vulnerabilities(asset):
 
 def scan_cisa_kev(asset):
     """Scan CISA Known Exploited Vulnerabilities"""
+    from app import Setting
     try:
         # Check if CISA is enabled
         cisa_enabled = Setting.query.filter_by(key='cisa_enabled').first()
@@ -132,6 +132,7 @@ def scan_osv_vulnerabilities(asset):
 
 def perform_vulnerability_scan():
     """Main vulnerability scanning function"""
+    from app import Asset, Alert, db
     print(f"Starting vulnerability scan at {datetime.utcnow()}")
     
     try:
@@ -187,6 +188,7 @@ def perform_vulnerability_scan():
 
 def start_background_scanner(app):
     """Start the background vulnerability scanner"""
+    from app import Setting
     # Get scan interval from settings
     with app.app_context():
         scan_interval_setting = Setting.query.filter_by(key='scan_interval').first()

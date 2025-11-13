@@ -9,70 +9,68 @@ import os
 
 load_dotenv()
 
-# Initialize extensions (without app)
-db = SQLAlchemy()
-jwt = JWTManager()
-bcrypt = Bcrypt()
+# Initialize Flask app
+app = Flask(__name__)
 
-def create_app():
-    # Initialize Flask app
-    app = Flask(__name__)
+# Configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret-key-change-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///asset_sentinel.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 
-    # Configuration
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret-key-change-in-production')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///asset_sentinel.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
-    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+# Initialize extensions
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
+bcrypt = Bcrypt(app)
+CORS(app)
 
-    # Initialize extensions with app
-    db.init_app(app)
-    jwt.init_app(app)
-    bcrypt.init_app(app)
-    CORS(app)
+# JWT error handlers
+@jwt.unauthorized_loader
+def unauthorized_callback(callback):
+    return jsonify({'error': 'Missing Authorization Header'}), 401
 
-    # Import routes
-    from routes import auth, users, assets, alerts, reports, settings
+@jwt.invalid_token_loader
+def invalid_token_callback(callback):
+    return jsonify({'error': 'Invalid token'}), 401
 
-    # Register blueprints
-    app.register_blueprint(auth.bp, url_prefix='/api/auth')
-    app.register_blueprint(users.bp, url_prefix='/api/users')
-    app.register_blueprint(assets.bp, url_prefix='/api/assets')
-    app.register_blueprint(alerts.bp, url_prefix='/api/alerts')
-    app.register_blueprint(reports.bp, url_prefix='/api/reports')
-    app.register_blueprint(settings.bp, url_prefix='/api/settings')
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({'error': 'Token has expired'}), 401
 
-    # JWT error handlers
-    @jwt.unauthorized_loader
-    def unauthorized_callback(callback):
-        return jsonify({'error': 'Missing Authorization Header'}), 401
+# Root route
+@app.route('/')
+def index():
+    return jsonify({
+        'name': 'Asset Sentinel API',
+        'version': '1.0.0',
+        'status': 'running'
+    })
 
-    @jwt.invalid_token_loader
-    def invalid_token_callback(callback):
-        return jsonify({'error': 'Invalid token'}), 401
+# Create and register models
+import models as models_module
+User, Asset, Alert, Setting = models_module.create_models(db, bcrypt)
 
-    @jwt.expired_token_loader
-    def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify({'error': 'Token has expired'}), 401
+# Make models available globally in app module
+globals()['User'] = User
+globals()['Asset'] = Asset
+globals()['Alert'] = Alert
+globals()['Setting'] = Setting
 
-    # Root route
-    @app.route('/')
-    def index():
-        return jsonify({
-            'name': 'Asset Sentinel API',
-            'version': '1.0.0',
-            'status': 'running'
-        })
-    
-    return app
+# Import and register blueprints
+from routes import auth, users, assets, alerts, reports, settings
+
+app.register_blueprint(auth.bp, url_prefix='/api/auth')
+app.register_blueprint(users.bp, url_prefix='/api/users')
+app.register_blueprint(assets.bp, url_prefix='/api/assets')
+app.register_blueprint(alerts.bp, url_prefix='/api/alerts')
+app.register_blueprint(reports.bp, url_prefix='/api/reports')
+app.register_blueprint(settings.bp, url_prefix='/api/settings')
 
 # Initialize database and create default admin user
-def init_db(app):
+def init_db():
     with app.app_context():
-        # Import models here
-        from models import User, Asset, Alert, Setting
-        
         db.create_all()
         
         # Create default admin user if not exists
@@ -109,11 +107,11 @@ def init_db(app):
             print("Default admin user created (username: admin, password: admin123)")
 
 if __name__ == '__main__':
-    app = create_app()
-    init_db(app)
+    init_db()
     
-    # Start background scanner
-    from scanner import start_background_scanner
-    start_background_scanner(app)
+    # Start background scanner (disabled for now - can be enabled in production)
+    # from scanner import start_background_scanner
+    # start_background_scanner(app)
     
+    print("Starting Asset Sentinel API server on http://0.0.0.0:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)

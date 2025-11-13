@@ -19,6 +19,7 @@ def admin_required(fn):
 @bp.route('', methods=['GET'])
 @jwt_required()
 def list_users():
+    """List all users (admin only for full list, users see themselves)"""
     from app import User
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
@@ -32,13 +33,16 @@ def list_users():
 @bp.route('/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user(user_id):
+    """Get a specific user"""
     from app import User
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
     
+    # Users can only view themselves unless they're admin
     if current_user.role != 'admin' and current_user_id != user_id:
         return jsonify({'error': 'Access denied'}), 403
     
+    from app import User, db
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
@@ -48,18 +52,21 @@ def get_user(user_id):
 @bp.route('', methods=['POST'])
 @admin_required
 def create_user():
-    from app import User, db
+    """Create a new user (admin only)"""
     data = request.get_json()
     
     if not data or not data.get('username') or not data.get('email') or not data.get('password'):
         return jsonify({'error': 'Username, email, and password required'}), 400
     
+    from app import User, db
+    # Check if user already exists
     if User.query.filter_by(username=data['username']).first():
         return jsonify({'error': 'Username already exists'}), 400
     
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'error': 'Email already exists'}), 400
     
+    from app import User, db
     user = User(
         username=data['username'],
         email=data['email'],
@@ -75,19 +82,22 @@ def create_user():
 @bp.route('/<int:user_id>', methods=['PUT'])
 @jwt_required()
 def update_user(user_id):
-    from app import User, db
+    """Update a user (admin or self)"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
     
+    # Users can only update themselves unless they're admin
     if current_user.role != 'admin' and current_user_id != user_id:
         return jsonify({'error': 'Access denied'}), 403
     
+    from app import User, db
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
     data = request.get_json()
     
+    # Only admin can change roles
     if data.get('role') and current_user.role != 'admin':
         return jsonify({'error': 'Only admin can change roles'}), 403
     
@@ -116,11 +126,13 @@ def update_user(user_id):
 @bp.route('/<int:user_id>', methods=['DELETE'])
 @admin_required
 def delete_user(user_id):
+    """Delete a user (admin only)"""
     from app import User, db
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
+    # Prevent deleting self
     current_user_id = get_jwt_identity()
     if current_user_id == user_id:
         return jsonify({'error': 'Cannot delete yourself'}), 400
