@@ -32,6 +32,19 @@ jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
 CORS(app)
 
+# JWT error handlers
+@jwt.unauthorized_loader
+def unauthorized_callback(callback):
+    return jsonify({'error': 'Missing Authorization Header'}), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(callback):
+    return jsonify({'error': 'Invalid token'}), 401
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({'error': 'Token has expired'}), 401
+
 # Database Models
 class User(db.Model):
     __tablename__ = 'users'
