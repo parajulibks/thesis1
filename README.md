@@ -9,12 +9,12 @@ Asset Sentinel is a full-stack application that provides comprehensive asset tra
 ## ✨ Key Features
 
 ### 🔐 Authentication & Authorization (100%)
-- **JWT Authentication System**: Secure login, logout, and token refresh with session management
+- **Simple Session-Based Authentication**: Secure login/logout with HTTP-only cookies (replaced JWT for simplicity)
 - **User Management APIs**: Complete CRUD operations with role assignment and password management
 - **Role-Based Access Control (RBAC)**: Three permission levels (Admin, User, Viewer)
-- **Modern Login UI**: Gradient design with secure session management
+- **Modern Login UI**: Modern blue gradient design with secure session management
 - **User Management Interface**: Full admin panel for user operations
-- **Session Security**: Auto-redirect on 401, token refresh flow, secure token storage
+- **Session Security**: Auto-redirect on 401, 24-hour session lifetime, secure cookies
 
 ### 📦 Asset Management (100%)
 - **Full CRUD Operations**: Create, read, update, delete assets via UI and API
@@ -27,15 +27,19 @@ Asset Sentinel is a full-stack application that provides comprehensive asset tra
 - **Real-Time Dashboard**: Live statistics and asset management tables
 
 ### 🔍 Vulnerability Monitoring (100%)
-- **Multi-Source Scanning**:
-  - NVD (National Vulnerability Database)
-  - CISA KEV (Known Exploited Vulnerabilities)
-  - OSV (Open Source Vulnerabilities)
-  - Vulners Database
-  - Vendor Advisory Feeds
+- **Real NVD API Integration**: Search vulnerabilities by product name and version using official NVD API v2.0
+- **Manual Vulnerability Scanner**: Dedicated page for on-demand vulnerability scanning
+- **Manual Scan Button**: Scan all assets instantly with one click
+- **Product-Based Search**: Search CVEs by product (e.g., Windows, Apache, Ubuntu) with optional version
+- **Multi-Source Scanning Framework**:
+  - NVD (National Vulnerability Database) - Integrated
+  - CISA KEV (Known Exploited Vulnerabilities) - Ready
+  - OSV (Open Source Vulnerabilities) - Ready
+  - Vulners Database - Ready
+  - Vendor Advisory Feeds - Ready
 - **Automated Background Scans**: Configurable interval (default: every 2 minutes)
 - **CVSS Scoring**: Precise risk assessment with base scores (0.0-10.0)
-- **Alert Prioritization**: Calculated from CVSS + exploitability + asset criticality
+- **Alert Prioritization**: Calculated from CVSS (50%) + exploitability (30%) + asset criticality (20%)
 - **Full Provenance Tracking**: Source feed, matched CPE, confidence level, patch links
 - **Webhook Notifications**: Instant alerts for CRITICAL/HIGH severity vulnerabilities
 - **Bulk Alert Actions**: Mark multiple alerts as resolved simultaneously

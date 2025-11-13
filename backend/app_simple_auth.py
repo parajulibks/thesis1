@@ -419,6 +419,220 @@ def update_settings():
     db.session.commit()
     return jsonify({'message': 'Settings updated'}), 200
 
+@app.route('/api/settings/<key>', methods=['PUT'])
+@admin_required
+def update_setting(key):
+    """Update a single setting"""
+    data = request.get_json()
+    value = data.get('value', '')
+    
+    setting = Setting.query.filter_by(key=key).first()
+    if setting:
+        setting.value = str(value)
+    else:
+        setting = Setting(key=key, value=str(value))
+        db.session.add(setting)
+    db.session.commit()
+    return jsonify(setting.to_dict()), 200
+
+# Vulnerability scanning routes
+@app.route('/api/vulnerabilities/scan', methods=['POST'])
+@admin_required
+def manual_vulnerability_scan():
+    """Manually trigger vulnerability scan for all assets"""
+    try:
+        assets = Asset.query.all()
+        scan_results = {'scanned': 0, 'vulnerabilities_found': 0, 'errors': 0}
+        
+        for asset in assets:
+            try:
+                # Scan for vulnerabilities
+                vulns = scan_asset_vulnerabilities(asset)
+                scan_results['scanned'] += 1
+                
+                # Create alerts for found vulnerabilities
+                for vuln_data in vulns:
+                    # Check if alert already exists
+                    existing = Alert.query.filter_by(
+                        asset_id=asset.id,
+                        cve_id=vuln_data['cve_id']
+                    ).first()
+                    
+                    if not existing:
+                        alert = Alert(
+                            asset_id=asset.id,
+                            cve_id=vuln_data['cve_id'],
+                            title=vuln_data.get('title', ''),
+                            description=vuln_data.get('description', ''),
+                            severity=vuln_data.get('severity', 'medium'),
+                            cvss_score=vuln_data.get('cvss_score', 0.0),
+                            priority_score=vuln_data.get('priority_score', 0.0),
+                            source=vuln_data.get('source', 'Manual Scan'),
+                            status='open'
+                        )
+                        db.session.add(alert)
+                        scan_results['vulnerabilities_found'] += 1
+                
+            except Exception as e:
+                print(f"Error scanning asset {asset.id}: {e}")
+                scan_results['errors'] += 1
+        
+        db.session.commit()
+        return jsonify({
+            'message': 'Scan completed',
+            'results': scan_results
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/vulnerabilities/search', methods=['POST'])
+@login_required
+def search_vulnerabilities():
+    """Search for vulnerabilities by product name and version using NVD API"""
+    try:
+        data = request.get_json()
+        product = data.get('product', '').strip()
+        version = data.get('version', '').strip()
+        
+        if not product:
+            return jsonify({'error': 'Product name is required'}), 400
+        
+        # Call NVD API
+        results = search_nvd_by_product(product, version)
+        
+        return jsonify({
+            'product': product,
+            'version': version,
+            'vulnerabilities': results
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def search_nvd_by_product(product, version=None):
+    """Search NVD API for vulnerabilities by product name and version"""
+    import requests
+    import time
+    
+    try:
+        # NVD API endpoint
+        base_url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+        
+        # Build search query
+        params = {
+            'keywordSearch': product,
+            'resultsPerPage': 10
+        }
+        
+        if version:
+            params['keywordSearch'] = f"{product} {version}"
+        
+        # Make request to NVD API
+        response = requests.get(base_url, params=params, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            vulnerabilities = []
+            
+            if 'vulnerabilities' in data:
+                for item in data['vulnerabilities']:
+                    cve = item.get('cve', {})
+                    cve_id = cve.get('id', 'Unknown')
+                    
+                    # Extract description
+                    descriptions = cve.get('descriptions', [])
+                    description = next((d['value'] for d in descriptions if d['lang'] == 'en'), 'No description available')
+                    
+                    # Extract CVSS score
+                    metrics = cve.get('metrics', {})
+                    cvss_score = 0.0
+                    severity = 'MEDIUM'
+                    
+                    if 'cvssMetricV31' in metrics and metrics['cvssMetricV31']:
+                        cvss_data = metrics['cvssMetricV31'][0]['cvssData']
+                        cvss_score = cvss_data.get('baseScore', 0.0)
+                        severity = cvss_data.get('baseSeverity', 'MEDIUM')
+                    elif 'cvssMetricV2' in metrics and metrics['cvssMetricV2']:
+                        cvss_score = metrics['cvssMetricV2'][0]['cvssData'].get('baseScore', 0.0)
+                        if cvss_score >= 7.0:
+                            severity = 'HIGH'
+                        elif cvss_score >= 4.0:
+                            severity = 'MEDIUM'
+                        else:
+                            severity = 'LOW'
+                    
+                    # Extract published date
+                    published = cve.get('published', '')
+                    
+                    vulnerabilities.append({
+                        'cve_id': cve_id,
+                        'description': description[:500],  # Limit description length
+                        'cvss_score': cvss_score,
+                        'severity': severity,
+                        'published': published,
+                        'source': 'NVD',
+                        'url': f'https://nvd.nist.gov/vuln/detail/{cve_id}'
+                    })
+            
+            return vulnerabilities
+        else:
+            return []
+            
+    except Exception as e:
+        print(f"Error searching NVD: {e}")
+        return []
+
+def scan_asset_vulnerabilities(asset):
+    """Scan an asset for vulnerabilities using its OS and software info"""
+    vulnerabilities = []
+    
+    # Extract product info from asset
+    if asset.os:
+        # Search for OS vulnerabilities
+        os_parts = asset.os.lower().split()
+        if os_parts:
+            product = os_parts[0]  # e.g., "Windows", "Ubuntu", "CentOS"
+            version = ""
+            
+            # Try to extract version
+            for part in os_parts[1:]:
+                if any(c.isdigit() for c in part):
+                    version = part
+                    break
+            
+            # Search NVD for this product
+            nvd_results = search_nvd_by_product(product, version)
+            
+            # Convert to alert format and calculate priority
+            for vuln in nvd_results[:5]:  # Limit to top 5 results
+                # Calculate priority score
+                cvss = vuln.get('cvss_score', 0.0)
+                
+                # Criticality weights
+                criticality_weight = {
+                    'low': 0.2,
+                    'medium': 0.5,
+                    'high': 0.75,
+                    'critical': 1.0
+                }.get(asset.criticality, 0.5)
+                
+                # Priority calculation
+                priority = (cvss / 10.0 * 50) + (0.8 * 30) + (criticality_weight * 20)
+                
+                vulnerabilities.append({
+                    'cve_id': vuln['cve_id'],
+                    'title': f"Vulnerability in {product}",
+                    'description': vuln['description'],
+                    'severity': vuln['severity'].lower(),
+                    'cvss_score': cvss,
+                    'priority_score': round(priority, 2),
+                    'source': 'NVD API',
+                    'url': vuln['url']
+                })
+    
+    return vulnerabilities
+
 # Report routes
 @app.route('/api/reports/pdf', methods=['GET'])
 @login_required
