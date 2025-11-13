@@ -50,52 +50,45 @@ Asset Sentinel is a full-stack application that provides comprehensive asset tra
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start - ONE COMMAND!
 
-### Prerequisites
-- Python 3.8+
-- pip (Python package manager)
-- Modern web browser
+### Run Everything with a Single Command
 
-### Installation
-
-1. **Clone the repository**
 ```bash
-git clone https://github.com/parajulibks/thesis1.git
-cd thesis1
+./start.sh
 ```
 
-2. **Install backend dependencies**
+That's it! This will:
+- ✅ Install Python dependencies automatically
+- ✅ Start the backend API server
+- ✅ Serve the frontend UI
+- ✅ Initialize the database with default admin user
+
+**Then open your browser to:** http://localhost:5000
+
+**Login with:**
+- Username: `admin`
+- Password: `admin123`
+
+### Alternative: Manual Start
+
+If you prefer to start manually:
+
 ```bash
 cd backend
 pip install -r requirements.txt
+python3 app_integrated.py
 ```
 
-3. **Configure environment variables**
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+Then open http://localhost:5000 in your browser.
 
-4. **Run the application**
-```bash
-python app.py
-```
+> 📘 **See [QUICKSTART.md](QUICKSTART.md) for troubleshooting and detailed instructions**
 
-The API server will start on `http://localhost:5000`
+### What You Get
 
-5. **Open the frontend**
-Open `frontend/index.html` in your browser or serve via a web server:
-```bash
-cd ../frontend
-python -m http.server 8000
-```
-
-Then navigate to `http://localhost:8000`
-
-6. **Login with default credentials**
-- Username: `admin`
-- Password: `admin123`
+- **Frontend**: http://localhost:5000 (Login page, Dashboard, Asset Management, etc.)
+- **Backend API**: http://localhost:5000/api (RESTful endpoints)
+- **Default Admin**: Pre-configured admin account for immediate use
 
 ---
 
