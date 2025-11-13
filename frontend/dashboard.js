@@ -3,32 +3,26 @@ let currentFilter = 'all';
 
 // Check authentication
 function checkAuth() {
-    const token = localStorage.getItem('access_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    if (!token) {
-        window.location.href = 'index.html';
-        return null;
+    // Display user info if available
+    if (user.username) {
+        document.getElementById('username').textContent = user.username;
+        const roleBadge = document.getElementById('userRole');
+        roleBadge.textContent = user.role || 'user';
+        roleBadge.className = `badge ${user.role === 'admin' ? 'critical' : 'medium'}`;
     }
     
-    // Display user info
-    document.getElementById('username').textContent = user.username || 'User';
-    const roleBadge = document.getElementById('userRole');
-    roleBadge.textContent = user.role || 'user';
-    roleBadge.className = `badge ${user.role === 'admin' ? 'critical' : 'medium'}`;
-    
-    return token;
+    return true;
 }
 
-// API call with authentication
+// API call with session-based authentication
 async function apiCall(endpoint, options = {}) {
-    const token = localStorage.getItem('access_token');
-    
     const defaultOptions = {
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include'  // Important for session cookies
     };
     
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -41,7 +35,7 @@ async function apiCall(endpoint, options = {}) {
     });
     
     if (response.status === 401) {
-        // Token expired, redirect to login
+        // Session expired, redirect to login
         localStorage.clear();
         window.location.href = 'index.html';
         return null;
@@ -164,7 +158,12 @@ async function resolveAlert(alertId) {
 }
 
 // Logout
-function logout() {
+async function logout() {
+    try {
+        await apiCall('/auth/logout', { method: 'POST' });
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
     localStorage.clear();
     window.location.href = 'index.html';
 }

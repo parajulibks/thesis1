@@ -156,15 +156,14 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
+                    credentials: 'include',  // Important for session cookies
                     body: JSON.stringify({ username, password })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Store tokens
-                    localStorage.setItem('access_token', data.access_token);
-                    localStorage.setItem('refresh_token', data.refresh_token);
+                    // Store user info in localStorage (optional, for display)
                     localStorage.setItem('user', JSON.stringify(data.user));
 
                     // Redirect to dashboard

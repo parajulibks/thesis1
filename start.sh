@@ -38,5 +38,5 @@ echo "[3/3] Server starting..."
 echo "========================================="
 echo ""
 
-# Run the Flask app
-python3 app_integrated.py
+# Run the Flask app with simple session-based authentication
+python3 app_simple_auth.py

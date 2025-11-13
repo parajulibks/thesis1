@@ -209,12 +209,11 @@
         const API_URL = 'http://localhost:5000/api';
 
         async function apiCall(endpoint, options = {}) {
-            const token = localStorage.getItem('access_token');
             const response = await fetch(`${API_URL}${endpoint}`, {
                 ...options,
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
                     ...options.headers
                 }
             });
@@ -302,16 +301,19 @@
         }
 
         async function downloadPDF() {
-            const token = localStorage.getItem('access_token');
-            window.open(`${API_URL}/reports/pdf?token=${token}`, '_blank');
+            window.open(`${API_URL}/reports/pdf`, '_blank');
         }
 
         async function downloadCSV() {
-            const token = localStorage.getItem('access_token');
-            window.open(`${API_URL}/reports/csv?token=${token}`, '_blank');
+            window.open(`${API_URL}/reports/csv`, '_blank');
         }
 
-        function logout() {
+        async function logout() {
+            try {
+                await apiCall('/auth/logout', { method: 'POST' });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
             localStorage.clear();
             window.location.href = 'index.html';
         }
