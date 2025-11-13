@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vulnerability Scanner - Asset Sentinel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #1e3c72;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .navbar h1 {
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #1e3c72;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            color: #1e3c72;
+            font-weight: 500;
+        }
+
+        .navbar button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .navbar button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .page-header h2 {
+            color: #1e3c72;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .page-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .scan-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .scan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .scan-header h3 {
+            color: #1e3c72;
+            font-size: 22px;
+        }
+
+        .scan-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(86, 171, 47, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .search-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .search-form h4 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .results-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .results-content {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .vuln-card {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.2s;
+        }
+
+        .vuln-card:hover {
+            background: #f8f9fa;
+        }
+
+        .vuln-card:last-child {
+            border-bottom: none;
+        }
+
+        .vuln-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .vuln-id {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e3c72;
+        }
+
+        .vuln-badges {
+            display: flex;
+            gap: 10px;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-critical {
+            background: #ff4757;
+            color: white;
+        }
+
+        .badge-high {
+            background: #ff6348;
+            color: white;
+        }
+
+        .badge-medium {
+            background: #ffa502;
+            color: white;
+        }
+
+        .badge-low {
+            background: #26de81;
+            color: white;
+        }
+
+        .cvss-badge {
+            background: #1e3c72;
+            color: white;
+        }
+
+        .vuln-description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .vuln-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .vuln-link {
+            margin-top: 10px;
+        }
+
+        .vuln-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .vuln-link a:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            padding: 60px;
+            text-align: center;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .scan-status {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .scan-status.show {
+            display: block;
+        }
+
+        .scan-status.success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+
+        .scan-status.error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1 onclick="location.href='dashboard.html'">🛡️ Asset Sentinel</h1>
+        <div class="navbar-right">
+            <span class="user-info" id="userInfo">Loading...</span>
+            <button onclick="location.href='dashboard.html'">Dashboard</button>
+            <button onclick="location.href='assets.html'">Assets</button>
+            <button onclick="location.href='users.html'" id="usersBtn" style="display:none;">Users</button>
+            <button onclick="location.href='settings.html'" id="settingsBtn" style="display:none;">Settings</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>🔍 Vulnerability Scanner</h2>
+            <p>Search for vulnerabilities using the National Vulnerability Database (NVD) API and scan your assets</p>
+        </div>
+
+        <div class="scan-section">
+            <div class="scan-header">
+                <h3>Scan Options</h3>
+                <div class="scan-buttons">
+                    <button class="btn btn-success" onclick="scanAllAssets()" id="scanBtn">
+                        <span>🔄</span> Scan All Assets
+                    </button>
+                </div>
+            </div>
+
+            <div class="scan-status" id="scanStatus"></div>
+
+            <div class="search-form">
+                <h4>Search by Product & Version</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product">Product Name *</label>
+                        <input type="text" id="product" placeholder="e.g., Apache, Windows, Ubuntu, MySQL" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="version">Version (Optional)</label>
+                        <input type="text" id="version" placeholder="e.g., 2.4.49, 10, 22.04">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="searchVulnerabilities()">
+                    <span>🔎</span> Search NVD Database
+                </button>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display:none;">
+                <div class="results-header" id="resultsHeader">Search Results</div>
+                <div class="results-content" id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include'
+                });
+                
+                if (response.status === 401) {
+                    window.location.href = '/';
+                    return null;
+                }
+                
+                const user = await response.json();
+                document.getElementById('userInfo').textContent = `${user.username} (${user.role})`;
+                
+                if (user.role === 'admin') {
+                    document.getElementById('usersBtn').style.display = 'block';
+                    document.getElementById('settingsBtn').style.display = 'block';
+                }
+                
+                return user;
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/';
+                return null;
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            window.location.href = '/';
+        }
+
+        async function searchVulnerabilities() {
+            const product = document.getElementById('product').value.trim();
+            const version = document.getElementById('version').value.trim();
+            
+            if (!product) {
+                alert('Please enter a product name');
+                return;
+            }
+            
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsHeader = document.getElementById('resultsHeader');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            resultsSection.style.display = 'block';
+            resultsHeader.textContent = 'Searching...';
+            resultsContent.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching NVD database...</p></div>';
+            
+            try {
+                const response = await fetch('/api/vulnerabilities/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ product, version })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const vulns = data.vulnerabilities;
+                    resultsHeader.textContent = `Found ${vulns.length} vulnerabilities for ${product}${version ? ' ' + version : ''}`;
+                    
+                    if (vulns.length === 0) {
+                        resultsContent.innerHTML = `
+                            <div class="empty-state">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <h3>No vulnerabilities found</h3>
+                                <p>The search didn't return any results. Try different search terms.</p>
+                            </div>
+                        `;
+                    } else {
+                        resultsContent.innerHTML = vulns.map(vuln => `
+                            <div class="vuln-card">
+                                <div class="vuln-header">
+                                    <div class="vuln-id">${vuln.cve_id}</div>
+                                    <div class="vuln-badges">
+                                        <span class="badge badge-${vuln.severity.toLowerCase()}">${vuln.severity}</span>
+                                        <span class="badge cvss-badge">CVSS: ${vuln.cvss_score.toFixed(1)}</span>
+                                    </div>
+                                </div>
+                                <div class="vuln-description">${vuln.description}</div>
+                                <div class="vuln-meta">
+                                    <span>📅 Published: ${new Date(vuln.published).toLocaleDateString()}</span>
+                                    <span>🔗 Source: ${vuln.source}</span>
+                                </div>
+                                <div class="vuln-link">
+                                    <a href="${vuln.url}" target="_blank">View full details on NVD →</a>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    resultsContent.innerHTML = `
+                        <div class="empty-state">
+                            <h3>Error</h3>
+                            <p>${data.error || 'Failed to search vulnerabilities'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsContent.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error</h3>
+                        <p>Failed to connect to the API. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function scanAllAssets() {
+            const scanBtn = document.getElementById('scanBtn');
+            const scanStatus = document.getElementById('scanStatus');
+            
+            scanBtn.disabled = true;
+            scanBtn.innerHTML = '<span>⏳</span> Scanning...';
+            
+            scanStatus.className = 'scan-status show';
+            scanStatus.textContent = 'Scanning all assets for vulnerabilities...';
+            
+            try {
+                const response = await fetch('/api/vulnerabilities/scan', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    scanStatus.className = 'scan-status show success';
+                    scanStatus.innerHTML = `
+                        <strong>✅ Scan completed successfully!</strong><br>
+                        Scanned: ${data.results.scanned} assets<br>
+                        Vulnerabilities found: ${data.results.vulnerabilities_found}<br>
+                        Errors: ${data.results.errors}
+                    `;
+                    
+                    setTimeout(() => {
+                        scanStatus.classList.remove('show');
+                    }, 5000);
+                } else {
+                    scanStatus.className = 'scan-status show error';
+                    scanStatus.textContent = '❌ ' + (data.error || 'Scan failed');
+                }
+            } catch (error) {
+                console.error('Scan error:', error);
+                scanStatus.className = 'scan-status show error';
+                scanStatus.textContent = '❌ Failed to connect to the API';
+            } finally {
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<span>🔄</span> Scan All Assets';
+            }
+        }
+
+        // Allow Enter key to trigger search
+        document.getElementById('version').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchVulnerabilities();
+            }
+        });
+
+        document.getElementById('product').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchVulnerabilities();
+            }
+        });
+
+        // Initialize page
+        checkAuth();
+    </script>
+</body>
+</html>

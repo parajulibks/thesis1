@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Asset Sentinel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6fa;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar h1 {
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .navbar button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1 onclick="window.location.href='dashboard.html'">🛡️ Asset Sentinel</h1>
+        <div>
+            <button onclick="window.location.href='dashboard.html'">Dashboard</button>
+            <button onclick="window.location.href='assets.html'">Assets</button>
+            <button onclick="window.location.href='vulnerabilities.html'">Vulnerabilities</button>
+            <button onclick="window.location.href='users.html'">Users</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="successMessage" class="success-message">Settings saved successfully!</div>
+
+        <div class="section">
+            <h2>Vulnerability Scanning Configuration</h2>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label>Scan Interval (minutes)</label>
+                    <input type="number" id="scan_interval" min="1" max="1440" value="2">
+                    <small>How often to scan for vulnerabilities (1-1440 minutes)</small>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="nvd_enabled" checked>
+                        <label for="nvd_enabled" style="margin: 0;">Enable NVD (National Vulnerability Database)</label>
+                    </div>
+                    <small>Scan against NIST National Vulnerability Database</small>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="cisa_enabled" checked>
+                        <label for="cisa_enabled" style="margin: 0;">Enable CISA KEV</label>
+                    </div>
+                    <small>Scan against CISA Known Exploited Vulnerabilities Catalog</small>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="osv_enabled">
+                        <label for="osv_enabled" style="margin: 0;">Enable OSV</label>
+                    </div>
+                    <small>Scan against Open Source Vulnerabilities database</small>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="vulners_enabled">
+                        <label for="vulners_enabled" style="margin: 0;">Enable Vulners</label>
+                    </div>
+                    <small>Scan against Vulners database</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>API Keys (Optional)</h2>
+            <div class="form-group">
+                <label>NVD API Key</label>
+                <input type="text" id="nvd_api_key" placeholder="Enter NVD API key">
+                <small>Optional: Increases rate limits for NVD API</small>
+            </div>
+
+            <div class="form-group">
+                <label>Webhook URL</label>
+                <input type="url" id="webhook_url" placeholder="https://your-webhook-url.com">
+                <small>Receive instant notifications for critical/high severity alerts</small>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveApiKeys()">Save API Keys</button>
+        </div>
+
+        <div class="section">
+            <h2>Reports</h2>
+            <p style="margin-bottom: 15px;">Generate and download reports</p>
+            <button class="btn btn-primary" onclick="downloadPDF()">Download PDF Report</button>
+            <button class="btn btn-primary" onclick="downloadCSV()" style="margin-left: 10px;">Export Alerts to CSV</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                ...options,
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            if (response.status === 401) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
+            
+            return response;
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await apiCall('/settings');
+                const settings = await response.json();
+                
+                settings.forEach(setting => {
+                    if (setting.key === 'scan_interval') {
+                        document.getElementById('scan_interval').value = setting.value;
+                    } else if (setting.key.endsWith('_enabled')) {
+                        const element = document.getElementById(setting.key);
+                        if (element) {
+                            element.checked = setting.value === 'true';
+                        }
+                    } else if (setting.key === 'nvd_api_key') {
+                        document.getElementById('nvd_api_key').value = setting.value;
+                    } else if (setting.key === 'webhook_url') {
+                        document.getElementById('webhook_url').value = setting.value;
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const settings = [
+                { key: 'scan_interval', value: document.getElementById('scan_interval').value },
+                { key: 'nvd_enabled', value: document.getElementById('nvd_enabled').checked ? 'true' : 'false' },
+                { key: 'cisa_enabled', value: document.getElementById('cisa_enabled').checked ? 'true' : 'false' },
+                { key: 'osv_enabled', value: document.getElementById('osv_enabled').checked ? 'true' : 'false' },
+                { key: 'vulners_enabled', value: document.getElementById('vulners_enabled').checked ? 'true' : 'false' }
+            ];
+            
+            for (const setting of settings) {
+                await apiCall(`/settings/${setting.key}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ value: setting.value })
+                });
+            }
+            
+            const successMsg = document.getElementById('successMessage');
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        });
+
+        async function saveApiKeys() {
+            const nvdKey = document.getElementById('nvd_api_key').value;
+            const webhookUrl = document.getElementById('webhook_url').value;
+            
+            if (nvdKey) {
+                await apiCall('/settings/nvd_api_key', {
+                    method: 'PUT',
+                    body: JSON.stringify({ value: nvdKey })
+                });
+            }
+            
+            if (webhookUrl) {
+                await apiCall('/settings/webhook_url', {
+                    method: 'PUT',
+                    body: JSON.stringify({ value: webhookUrl })
+                });
+            }
+            
+            const successMsg = document.getElementById('successMessage');
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        async function downloadPDF() {
+            window.open(`${API_URL}/reports/pdf`, '_blank');
+        }
+
+        async function downloadCSV() {
+            window.open(`${API_URL}/reports/csv`, '_blank');
+        }
+
+        async function logout() {
+            try {
+                await apiCall('/auth/logout', { method: 'POST' });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        window.onload = loadSettings;
+    </script>
+</body>
+</html>
